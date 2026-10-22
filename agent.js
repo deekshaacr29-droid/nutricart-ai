@@ -82,10 +82,9 @@ async function main() {
         demoQuantities
     );
 
-    const browser = await chromium.launch({
-        headless: false,
-        args: ['--start-maximized']
-    });
+   const browser = await chromium.launch({
+  headless: true
+});
 
     try {
         const page = await browser.newPage({
