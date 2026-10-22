@@ -83,9 +83,9 @@ async function main() {
     );
 
    const browser = await chromium.launch({
-  headless: true
+  headless: true,
+  args: ['--no-sandbox']
 });
-
     try {
         const page = await browser.newPage({
             viewport: null
