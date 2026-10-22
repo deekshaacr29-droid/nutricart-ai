@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const API_TOKEN = process.env.NUTRICART_API_TOKEN;
 
 app.use(express.json({ limit: '10kb' }));
@@ -125,6 +125,6 @@ app.post('/run-agent', authenticate, validatePlan, (req, res) => {
   child.stdin.end(JSON.stringify(req.body));
 });
 
-app.listen(PORT, '127.0.0.1', () => {
-  console.log(`NutriCart API running at http://127.0.0.1:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`NutriCart API running on port ${PORT}`);
 });
