@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NutriCart AI | Grocery Store</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7f5;
+      color: #24332b;
+    }
+
+    header {
+      background: #176b45;
+      color: white;
+      padding: 22px 6%;
+    }
+
+    header h1 {
+      margin: 0;
+    }
+
+    header p {
+      margin-bottom: 0;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+    }
+
+    .card, .cart, .approval {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 2px 10px #0000000b;
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    .price {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .tag {
+      display: inline-block;
+      background: #e9f4ed;
+      padding: 5px 8px;
+      border-radius: 5px;
+      font-size: 12px;
+    }
+
+    button {
+      border: 0;
+      padding: 10px 14px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .add {
+      background: #176b45;
+      color: white;
+      width: 100%;
+    }
+
+    .secondary {
+      background: #e8eee9;
+      color: #24332b;
+    }
+
+    .approve {
+      background: #176b45;
+      color: white;
+      width: 100%;
+    }
+
+    .checkout {
+      background: #e5e5e5;
+      color: #777;
+      width: 100%;
+      cursor: not-allowed;
+    }
+
+    .cart-item {
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .cart-item button {
+      padding: 5px 9px;
+    }
+
+    .totals {
+      line-height: 1.9;
+      margin-top: 16px;
+    }
+
+    .total {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .warning {
+      color: #a84a12;
+      background: #fff2e7;
+      padding: 10px;
+      border-radius: 7px;
+      font-size: 13px;
+    }
+
+    .status {
+      background: #edf5ff;
+      padding: 10px;
+      border-radius: 7px;
+      margin-top: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .approval {
+      margin-top: 20px;
+    }
+
+    @media (max-width: 750px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>🥗 NutriCart AI</h1>
+    <p>Smart grocery shopping based on your meal plan and budget</p>
+  </header>
+
+  <main>
+    <div class="layout">
+      <section>
+        <h2>Grocery Store</h2>
+        <p>Sample catalogue for hackathon testing.</p>
+        <div class="products" id="products"></div>
+      </section>
+
+      <aside class="cart">
+        <h2>🛒 Your Cart</h2>
+        <div id="cartItems">No products added yet.</div>
+
+        <div class="totals">
+          <div>Items: ₹<span id="subtotal">0.00</span></div>
+          <div>Delivery: ₹<span id="delivery">40.00</span></div>
+          <div class="total">Total: ₹<span id="total">40.00</span></div>
+        </div>
+
+        <label for="budget">Budget (₹)</label>
+        <input id="budget" type="number" value="2000" min="0"
+               style="width:100%;padding:10px;margin-top:8px">
+
+        <div id="budgetStatus" class="status">
+          Add products to calculate your budget.
+        </div>
+
+        <button class="secondary" onclick="reviseCart()">
+          Revise Cart to Fit Budget
+        </button>
+
+        <div id="approvalSection" class="approval">
+          <h3>Human Approval</h3>
+          <p id="approvalStatus">Review the proposed cart before approval.</p>
+
+          <label>
+            <input type="checkbox" id="reviewed">
+            I have reviewed the cart and its safety warnings.
+          </label>
+
+          <button class="approve" onclick="approveCart()">
+            Approve Proposed Cart
+          </button>
+
+          <button class="checkout" id="checkout" disabled>
+            Checkout Disabled
+          </button>
+        </div>
+
+        <div id="result" class="status">
+          Cart verification has not been run.
+        </div>
+      </aside>
+    </div>
+
+    <section class="approval">
+      <h2>Agent Decision Log</h2>
+      <div id="log">Store ready. Waiting for cart actions.</div>
+    </section>
+  </main>
+
+  <script>
+    const products = [
+      {
+        id: "RICE001",
+        name: "Raw Rice",
+        price: 60,
+        unit: "kg",
+        allergens: [],
+        ingredients: ["rice"],
+        description: "Plain raw rice"
+      },
+      {
+        id: "DAL001",
+        name: "Toor Dal",
+        price: 140,
+        unit: "kg",
+        allergens: [],
+        ingredients: ["toor dal"],
+        description: "Plain pulses"
+      },
+      {
+        id: "OIL001",
+        name: "Cooking Oil",
+        price: 150,
+        unit: "litre",
+        allergens: [],
+        ingredients: ["vegetable oil"],
+        description: "Cooking oil"
+      },
+      {
+        id: "PEANUT001",
+        name: "Peanuts",
+        price: 120,
+        unit: "kg",
+        allergens: ["peanuts"],
+        ingredients: ["peanuts"],
+        description: "Contains peanuts"
+      },
+      {
+        id: "SUGAR001",
+        name: "White Sugar",
+        price: 50,
+        unit: "kg",
+        allergens: [],
+        ingredients: ["sugar"],
+        description: "Plain sugar"
+      },
+      {
+        id: "SWEETDAL001",
+        name: "Sweetened Dal Mix",
+        price: 180,
+        unit: "kg",
+        allergens: [],
+        ingredients: ["toor dal", "sugar"],
+        description: "Contains added sugar"
+      }
+    ];
+
+    const cart = {};
+    const deliveryFee = 40;
+    let approved = false;
+
+    function log(message) {
+      document.getElementById("log").textContent = message;
+    }
+
+    function money(value) {
+      return Number(value).toFixed(2);
+    }
+
+    function renderProducts() {
+      document.getElementById("products").innerHTML =
+        products.map(product => `
+          <article class="card" data-product-id="${product.id}">
+            <h3>${product.name}</h3>
+            <p class="price">₹${product.price}/${product.unit}</p>
+            <p>${product.description}</p>
+            <p><span class="tag">ID: ${product.id}</span></p>
+            <p>Allergens: ${
+              product.allergens.length
+                ? product.allergens.join(", ")
+                : "None declared"
+            }</p>
+            <button class="add"
+              onclick="addToCart('${product.id}')">
+              Add to Cart
+            </button>
+          </article>
+        `).join("");
+    }
+
+    function invalidateApproval() {
+      approved = false;
+      document.getElementById("checkout").disabled = true;
+      document.getElementById("checkout").textContent =
+        "Checkout Disabled";
+      document.getElementById("reviewed").checked = false;
+      document.getElementById("approvalStatus").textContent =
+        "Cart changed. Review and approve the updated cart.";
+    }
+
+    function addToCart(id) {
+      const product = products.find(p => p.id === id);
+
+      if (!product) return;
+
+      cart[id] = (cart[id] || 0) + 1;
+      invalidateApproval();
+      renderCart();
+
+      log("Added " + product.name + " to the proposed cart.");
+    }
+
+    function changeQuantity(id, amount) {
+      cart[id] = (cart[id] || 0) + amount;
+
+      if (cart[id] <= 0) {
+        delete cart[id];
+      }
+
+      invalidateApproval();
+      renderCart();
+    }
+    function setQuantity(id, value) {
+  const quantity = Number(value);
+
+  if (!Number.isFinite(quantity) || quantity < 0) {
+    alert("Enter a valid quantity.");
+    renderCart();
+    return;
+  }
+
+  if (quantity === 0) {
+    delete cart[id];
+  } else {
+    cart[id] = Math.round(quantity * 10) / 10;
+  }
+
+  invalidateApproval();
+  renderCart();
+}
+
+    function getTotals() {
+  const subtotal = products.reduce((sum, product) => {
+    const quantity = cart[product.id] || 0;
+    return sum + product.price * quantity;
+  }, 0);
+
+  const totalQuantity = Object.values(cart)
+    .reduce((sum, quantity) => sum + quantity, 0);
+
+  const delivery = totalQuantity > 0 ? deliveryFee : 0;
+
+  const total = subtotal + delivery;
+
+  return {
+    subtotal: Math.round(subtotal * 100) / 100,
+    delivery,
+    total: Math.round(total * 100) / 100
+  };
+}
+
+    function renderCart() {
+      const cartItems = document.getElementById("cartItems");
+
+      const selected = products.filter(p => cart[p.id] > 0);
+
+      if (selected.length === 0) {
+        cartItems.textContent = "No products added yet.";
+      } else {
+        cartItems.innerHTML = selected.map(product => `
+          <div class="cart-item" data-cart-product-id="${product.id}">
+            <strong>${product.name}</strong><br>
+            ₹${product.price} × ${cart[product.id]} ${product.unit}
+<br>
+<label>
+  Quantity:
+  <input
+    type="number"
+    min="0"
+    step="0.1"
+    value="${cart[product.id]}"
+    onchange="setQuantity('${product.id}', this.value)"
+    style="width:80px;padding:5px"
+  >
+  ${product.unit}
+</label>
+<br>
+<button onclick="changeQuantity('${product.id}', -0.1)">−</button>
+<button onclick="changeQuantity('${product.id}', 0.1)">+</button>
+          </div>
+        `).join("");
+      }
+
+      const totals = getTotals();
+
+      document.getElementById("subtotal").textContent =
+        money(totals.subtotal);
+
+      document.getElementById("delivery").textContent =
+        money(totals.delivery);
+
+      document.getElementById("total").textContent =
+        money(totals.total);
+
+      const budget = Number(document.getElementById("budget").value);
+      const status = document.getElementById("budgetStatus");
+
+      status.textContent = totals.total <= budget
+        ? "Within budget."
+        : "Over budget. Revise the cart before approval.";
+
+      document.getElementById("result").textContent =
+        "Cart verification pending. Expected total: ₹" +
+        money(totals.total) + ".";
+
+     if (!approved) {
+  document.getElementById("checkout").disabled = true;
+}
+    }
+
+    function reviseCart() {
+    const budget = Number(document.getElementById("budget").value);
+
+    if (!Number.isFinite(budget) || budget <= 0) {
+        alert("Please enter a valid budget.");
+        return;
+    }
+
+    console.log("Budget revision started. Budget:", budget);
+
+    const selectedProducts = products
+        .filter(product => Number(cart[product.id]) > 0)
+        .sort((a, b) => b.price - a.price);
+
+    for (const product of selectedProducts) {
+        if (getTotals().total <= budget) {
+            break;
+        }
+
+        console.log("Removing product:", product.name);
+
+        cart[product.id] = 0;
+        renderCart();
+    }
+
+    const finalTotal = getTotals().total;
+
+    console.log("Final total after revision:", finalTotal);
+
+    document.getElementById("budgetStatus").textContent =
+        finalTotal <= budget
+            ? "Within budget after cart revision."
+            : "Budget cannot be met. Human review required.";
+
+    document.getElementById("result").textContent =
+        finalTotal <= budget
+            ? "Cart revised successfully. Final total: " + money(finalTotal)
+            : "The cart still exceeds the budget. Final total: " + money(finalTotal);
+
+    document.getElementById("checkout").disabled = true;
+
+    // Expose the result so Playwright can verify the actual revision.
+    window.lastRevisionTotal = finalTotal;
+}
+    function approveCart() {
+      const totals = getTotals();
+      const budget = Number(document.getElementById("budget").value);
+
+      if (Object.keys(cart).length === 0) {
+        alert("Add products before approving.");
+        return;
+      }
+
+      if (totals.total > budget) {
+        alert("The cart exceeds the budget. Revise it first.");
+        return;
+      }
+
+      if (!document.getElementById("reviewed").checked) {
+        alert("Please confirm that you reviewed the cart.");
+        return;
+      }
+
+      approved = true;
+
+      document.getElementById("approvalStatus").textContent =
+        "Human approval recorded for the current proposed cart.";
+
+      const checkout = document.getElementById("checkout");
+      checkout.disabled = false;
+      checkout.textContent = "Checkout Available — Demo Only";
+
+      document.getElementById("result").textContent =
+        "Verified: cart total ₹" + money(totals.total) +
+        ", within budget ₹" + money(budget) + ".";
+
+      log("Approval recorded. No purchase has been made.");
+    }
+
+    document.getElementById("budget").addEventListener("input", () => {
+      invalidateApproval();
+      renderCart();
+    });
+
+    renderProducts();
+    renderCart();
+  </script>
+</body>
+</html>
